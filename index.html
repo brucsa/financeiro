@@ -102,6 +102,8 @@
       const [contaFixa, setContaFixa] = useState(lancamentoEdit?.contaFixa || false);
       const [categoria, setCategoria] = useState(lancamentoEdit?.categoria || "outros");
       const [showSaveOpts, setShowSaveOpts] = useState(false);
+      const [diaLanc, setDiaLanc] = useState(isEdit ? (lancamentoEdit.diaPrimeiro || dia) : dia);
+      const [mesLanc, setMesLanc] = useState(mes);
 
       const valorNum    = parseFloat(String(valor).replace(",", ".")) || 0;
       const valorParc   = (contaFixa || isEdit) ? valorNum : (parcelas > 0 ? valorNum / parcelas : 0);
@@ -117,15 +119,15 @@
         if (!valorNum) return;
         if (isEdit) {
           if (isRecurring) { setShowSaveOpts(true); return; }
-          onEdit(lancamentoEdit, "todos", { tipo, descricao, categoria, valorParcela: valorNum }, mesSel);
+          onEdit(lancamentoEdit, "todos", { tipo, descricao, categoria, valorParcela: valorNum, diaPrimeiro: diaLanc }, mesSel);
           onClose();
         } else {
-          onConfirm({ tipo, descricao, categoria, contaFixa, valorTotal: valorNum, valorParcela: valorParc, parcelas: contaFixa ? 1 : parcelas, mesPrimeiro: mes, diaPrimeiro: dia });
+          onConfirm({ tipo, descricao, categoria, contaFixa, valorTotal: valorNum, valorParcela: valorParc, parcelas: contaFixa ? 1 : parcelas, mesPrimeiro: mesLanc, diaPrimeiro: diaLanc });
         }
       };
 
       const handleEditSave = (escopo) => {
-        onEdit(lancamentoEdit, escopo, { tipo, descricao, categoria, valorParcela: valorNum }, mesSel);
+        onEdit(lancamentoEdit, escopo, { tipo, descricao, categoria, valorParcela: valorNum, diaPrimeiro: diaLanc }, mesSel);
         onClose();
       };
 
@@ -139,7 +141,6 @@
                 <h2 style={{ margin:0, fontSize:17, fontWeight:700, color:"#f1f5f9" }}>
                   {isEdit ? "Editar Lançamento" : "Novo Lançamento"}
                 </h2>
-                <p style={{ margin:"3px 0 0", fontSize:12, color:"#64748b" }}>Dia {dia} · {MESES[mes]}</p>
               </div>
               <div style={{ display:"flex", gap:8 }}>
                 {isEdit && (
@@ -163,6 +164,26 @@
                   transition:"all 0.2s"
                 }}>{label}</button>
               ))}
+            </div>
+
+            {/* Data de pagamento */}
+            <div style={{ display:"grid", gridTemplateColumns: isEdit ? "1fr" : "1fr 1fr", gap:10, marginBottom:14 }}>
+              <div>
+                <label style={{ fontSize:11, color:"#475569", display:"block", marginBottom:6, letterSpacing:1 }}>DIA DO PAGAMENTO</label>
+                <div style={{ display:"flex", alignItems:"center", background:"#0d1b2e", border:"1px solid #1e3a5f", borderRadius:12, overflow:"hidden" }}>
+                  <button onClick={() => setDiaLanc(d => Math.max(1, d - 1))} style={{ padding:"12px 16px", background:"transparent", border:"none", color:"#60a5fa", fontSize:18, cursor:"pointer", fontWeight:700, lineHeight:1 }}>−</button>
+                  <span style={{ flex:1, textAlign:"center", color:"#f1f5f9", fontWeight:800, fontSize:17 }}>{diaLanc}</span>
+                  <button onClick={() => setDiaLanc(d => Math.min(DIAS_MES[mesLanc], d + 1))} style={{ padding:"12px 16px", background:"transparent", border:"none", color:"#60a5fa", fontSize:18, cursor:"pointer", fontWeight:700, lineHeight:1 }}>+</button>
+                </div>
+              </div>
+              {!isEdit && (
+                <div>
+                  <label style={{ fontSize:11, color:"#475569", display:"block", marginBottom:6, letterSpacing:1 }}>MÊS</label>
+                  <select value={mesLanc} onChange={e => { const m = +e.target.value; setMesLanc(m); setDiaLanc(d => Math.min(d, DIAS_MES[m])); }} style={{ background:"#0d1b2e", border:"1px solid #1e3a5f", borderRadius:12, color:"#f1f5f9", padding:"13px 14px", fontSize:15, width:"100%", outline:"none", fontFamily:"inherit", boxSizing:"border-box", cursor:"pointer" }}>
+                    {MESES.map((m, i) => <option key={i} value={i}>{m}</option>)}
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Conta fixa — só na criação */}
@@ -309,7 +330,7 @@
       const termometro = getStatus(resMes.performance);
       const hoje = new Date().getDate();
       return (
-        <div style={{ flex:1, overflowY:"auto", paddingBottom:80 }}>
+        <div style={{ flex:1, overflowY:"auto", paddingBottom:90 }}>
           {/* Hero */}
           <div style={{ margin:"16px 16px 0", background:"linear-gradient(145deg,#1a2f52,#0d1b2e)", borderRadius:24, padding:"20px 20px 16px", border:`1px solid ${termometro.cor}33`, position:"relative", overflow:"hidden" }}>
             <div style={{ position:"absolute", top:-40, right:-40, width:120, height:120, borderRadius:"50%", background:termometro.cor, opacity:0.08, filter:"blur(30px)" }} />
@@ -429,7 +450,7 @@
       const totalS    = resAnual.reduce((a,m) => a + m.totalSaidas, 0);
       const s = getStatus(totalPerf);
       return (
-        <div style={{ flex:1, overflowY:"auto", paddingBottom:80 }}>
+        <div style={{ flex:1, overflowY:"auto", paddingBottom:90 }}>
           <div style={{ margin:"16px 16px 0", background:"linear-gradient(145deg,#1a2f52,#0d1b2e)", borderRadius:24, padding:"20px", border:`1px solid ${s.cor}33` }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <div>
@@ -511,7 +532,7 @@
 
           if (escopo === "todos") {
             return prev.map(x => x.id === l.id
-              ? { ...x, tipo: dados.tipo, descricao: dados.descricao, categoria: dados.categoria, valorParcela: dados.valorParcela, excecoes: {} }
+              ? { ...x, tipo: dados.tipo, descricao: dados.descricao, categoria: dados.categoria, valorParcela: dados.valorParcela, diaPrimeiro: dados.diaPrimeiro ?? x.diaPrimeiro, excecoes: {} }
               : x
             );
           }
@@ -527,7 +548,7 @@
             if (l.contaFixa) {
               const atualizado = prev.map(x => x.id === l.id ? { ...x, mesUltimo: mes - 1 } : x)
                                      .filter(x => !(x.id === l.id && x.mesUltimo < (x.mesPrimeiro || 0)));
-              return [...atualizado, { id: Date.now(), ...dados, contaFixa: true, parcelas: 1, mesPrimeiro: mes, mesUltimo: undefined, diaPrimeiro: l.diaPrimeiro, excecoes: {} }];
+              return [...atualizado, { id: Date.now(), ...dados, contaFixa: true, parcelas: 1, mesPrimeiro: mes, mesUltimo: undefined, diaPrimeiro: dados.diaPrimeiro ?? l.diaPrimeiro, excecoes: {} }];
             } else {
               const parcelaIdx  = (lancEdit.parcela || 1) - 1;
               const restantes   = parcelaIdx;
@@ -535,7 +556,7 @@
               const atualizado  = prev
                 .map(x => x.id === l.id ? (restantes === 0 ? null : { ...x, parcelas: restantes }) : x)
                 .filter(x => x !== null);
-              return [...atualizado, { id: Date.now(), ...dados, contaFixa: false, parcelas: novas, mesPrimeiro: mes, diaPrimeiro: l.diaPrimeiro, excecoes: {} }];
+              return [...atualizado, { id: Date.now(), ...dados, contaFixa: false, parcelas: novas, mesPrimeiro: mes, diaPrimeiro: dados.diaPrimeiro ?? l.diaPrimeiro, excecoes: {} }];
             }
           }
 
@@ -626,7 +647,7 @@
           </div>
 
           {/* Bottom Nav */}
-          <div style={{ background:"#0d1b2e", borderTop:"1px solid #1a2540", flexShrink:0 }}>
+          <div style={{ background:"#0d1b2e", borderTop:"1px solid #1a2540", position:"fixed", bottom:0, left:0, right:0, zIndex:100 }}>
             <div style={{ display:"flex", alignItems:"center", maxWidth:600, margin:"0 auto", paddingBottom:4 }}>
               <button onClick={() => setTab("home")} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:3, background:"none", border:"none", cursor:"pointer", padding:"8px 0" }}>
                 <span style={{ fontSize:20 }}>🏠</span>
