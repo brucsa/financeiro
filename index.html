@@ -372,6 +372,12 @@
       const hoje = new Date().getDate();
       const todasCategorias = [...CATEGORIAS, ...categoriasCustom];
       const getEmoji = (id) => todasCategorias.find(c => c.id === id)?.emoji || "📌";
+      const [filtro, setFiltro] = useState("todos");
+
+      const linhasFiltradas = resMes.linhas
+        .map(l => ({ ...l, itens: filtro === "todos" ? l.itens : l.itens.filter(i => i.tipo === filtro) }))
+        .filter(l => l.itens.length > 0);
+
       return (
         <div style={{ flex:1, overflowY:"auto", paddingBottom:90 }}>
           {/* Hero */}
@@ -428,20 +434,33 @@
           <div style={{ padding:"12px 16px 0" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
               <span style={{ fontSize:13, fontWeight:700, color:"#94a3b8" }}>Lançamentos · {MESES[mesSel]}</span>
-              <div style={{ display:"flex", gap:8 }}>
-                <button onClick={() => setModal({ mes:mesSel, dia:hoje, tipo:"entrada" })} style={{ padding:"7px 12px", borderRadius:10, border:"none", cursor:"pointer", background:"#16a34a22", color:"#4ade80", fontWeight:700, fontSize:12 }}>⬆️ Entrada</button>
-                <button onClick={() => setModal({ mes:mesSel, dia:hoje, tipo:"saida" })} style={{ padding:"7px 12px", borderRadius:10, border:"none", cursor:"pointer", background:"#dc262622", color:"#f87171", fontWeight:700, fontSize:12 }}>⬇️ Saída</button>
+              <div style={{ display:"flex", gap:6 }}>
+                {[
+                  ["todos",   "Todos",    "#3b82f6",  "#3b82f622", "#60a5fa"],
+                  ["entrada", "⬆️ Entrada", "#16a34a", "#16a34a22", "#4ade80"],
+                  ["saida",   "⬇️ Saída",  "#dc2626",  "#dc262622", "#f87171"],
+                ].map(([val, label, cor, bg, txt]) => (
+                  <button key={val} onClick={() => setFiltro(val)} style={{
+                    padding:"7px 12px", borderRadius:10, cursor:"pointer", fontWeight:700, fontSize:12,
+                    background: filtro===val ? bg : "transparent",
+                    color: filtro===val ? txt : "#334155",
+                    border: `1px solid ${filtro===val ? cor : "transparent"}`,
+                    transition:"all 0.15s"
+                  }}>{label}</button>
+                ))}
               </div>
             </div>
 
-            {resMes.linhas.filter(l => l.itens.length > 0).length === 0 ? (
+            {linhasFiltradas.length === 0 ? (
               <div style={{ textAlign:"center", padding:"40px 20px", color:"#334155" }}>
                 <div style={{ fontSize:40, marginBottom:12 }}>📭</div>
-                <div style={{ fontSize:14, fontWeight:600 }}>Nenhum lançamento em {MESES[mesSel]}</div>
-                <div style={{ fontSize:12, marginTop:4 }}>Toque em Entrada ou Saída para começar</div>
+                <div style={{ fontSize:14, fontWeight:600 }}>
+                  {resMes.linhas.some(l => l.itens.length > 0) ? `Nenhuma ${filtro === "entrada" ? "entrada" : "saída"} em ${MESES[mesSel]}` : `Nenhum lançamento em ${MESES[mesSel]}`}
+                </div>
+                <div style={{ fontSize:12, marginTop:4 }}>Use o botão + para adicionar</div>
               </div>
             ) : (
-              resMes.linhas.filter(l => l.itens.length > 0).map(({ dia, entrada, saida, saldo, itens }) => (
+              linhasFiltradas.map(({ dia, entrada, saida, saldo, itens }) => (
                 <div key={dia} style={{ background:"#1a2540", borderRadius:16, marginBottom:10, overflow:"hidden" }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", background:"#1e2f4a", borderBottom:"1px solid #0d1b2e" }}>
                     <div style={{ display:"flex", alignItems:"center", gap:8 }}>
