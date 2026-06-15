@@ -91,7 +91,7 @@
       );
     }
 
-    function ModalLancamento({ info, lancamentoEdit, mesSel, onConfirm, onEdit, onDelete, onClose }) {
+    function ModalLancamento({ info, lancamentoEdit, mesSel, categoriasCustom, onAddCategoria, onConfirm, onEdit, onDelete, onClose }) {
       const isEdit = !!lancamentoEdit;
       const { mes, dia } = info;
 
@@ -104,6 +104,19 @@
       const [showSaveOpts, setShowSaveOpts] = useState(false);
       const [diaLanc, setDiaLanc] = useState(isEdit ? (lancamentoEdit.diaPrimeiro || dia) : dia);
       const [mesLanc, setMesLanc] = useState(mes);
+      const [addingCat, setAddingCat]       = useState(false);
+      const [newCatEmoji, setNewCatEmoji]   = useState("");
+      const [newCatLabel, setNewCatLabel]   = useState("");
+
+      const todasCategorias = [...CATEGORIAS, ...categoriasCustom];
+
+      const confirmarNovaCategoria = () => {
+        if (!newCatLabel.trim()) return;
+        const nova = { id: "custom_" + Date.now(), label: newCatLabel.trim(), emoji: newCatEmoji.trim() || "🏷️" };
+        onAddCategoria(nova);
+        setCategoria(nova.id);
+        setNewCatEmoji(""); setNewCatLabel(""); setAddingCat(false);
+      };
 
       const valorNum    = parseFloat(String(valor).replace(",", ".")) || 0;
       const valorParc   = (contaFixa || isEdit) ? valorNum : (parcelas > 0 ? valorNum / parcelas : 0);
@@ -179,9 +192,12 @@
               {!isEdit && (
                 <div>
                   <label style={{ fontSize:11, color:"#475569", display:"block", marginBottom:6, letterSpacing:1 }}>MÊS</label>
-                  <select value={mesLanc} onChange={e => { const m = +e.target.value; setMesLanc(m); setDiaLanc(d => Math.min(d, DIAS_MES[m])); }} style={{ background:"#0d1b2e", border:"1px solid #1e3a5f", borderRadius:12, color:"#f1f5f9", padding:"13px 14px", fontSize:15, width:"100%", outline:"none", fontFamily:"inherit", boxSizing:"border-box", cursor:"pointer" }}>
-                    {MESES.map((m, i) => <option key={i} value={i}>{m}</option>)}
-                  </select>
+                  <div style={{ position:"relative" }}>
+                    <select value={mesLanc} onChange={e => { const m = +e.target.value; setMesLanc(m); setDiaLanc(d => Math.min(d, DIAS_MES[m])); }} style={{ background:"#0d1b2e", border:"1px solid #1e3a5f", borderRadius:12, color:"#f1f5f9", padding:"13px 44px 13px 14px", fontSize:15, width:"100%", outline:"none", fontFamily:"inherit", boxSizing:"border-box", cursor:"pointer", appearance:"none", WebkitAppearance:"none" }}>
+                      {MESES.map((m, i) => <option key={i} value={i}>{m}</option>)}
+                    </select>
+                    <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", color:"#60a5fa", fontSize:13, pointerEvents:"none" }}>▾</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -206,8 +222,8 @@
             {/* Categoria */}
             <div style={{ marginBottom:14 }}>
               <label style={{ fontSize:11, color:"#475569", display:"block", marginBottom:8, letterSpacing:1 }}>CATEGORIA</label>
-              <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-                {CATEGORIAS.map(c => (
+              <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
+                {todasCategorias.map(c => (
                   <button key={c.id} onClick={() => setCategoria(c.id)} style={{
                     padding:"6px 10px", borderRadius:20, cursor:"pointer",
                     fontSize:12, fontWeight:700,
@@ -217,7 +233,32 @@
                     transition:"all 0.15s"
                   }}>{c.emoji} {c.label}</button>
                 ))}
+                <button onClick={() => setAddingCat(v => !v)} style={{
+                  padding:"6px 10px", borderRadius:20, cursor:"pointer",
+                  fontSize:14, fontWeight:700, lineHeight:1,
+                  background: addingCat ? "#3b82f622" : "#0d1b2e",
+                  color: addingCat ? "#60a5fa" : "#475569",
+                  border:`1px solid ${addingCat ? "#3b82f6" : "#1e3a5f"}`,
+                  transition:"all 0.15s"
+                }}>+</button>
               </div>
+              {addingCat && (
+                <div style={{ display:"flex", gap:8, marginTop:10, alignItems:"center" }}>
+                  <input
+                    type="text" placeholder="😀" value={newCatEmoji} maxLength={2}
+                    onChange={e => setNewCatEmoji(e.target.value)}
+                    style={{ background:"#0d1b2e", border:"1px solid #1e3a5f", borderRadius:10, color:"#f1f5f9", padding:"10px", fontSize:18, width:52, textAlign:"center", outline:"none", fontFamily:"inherit", boxSizing:"border-box" }}
+                  />
+                  <input
+                    type="text" placeholder="Nome da categoria" value={newCatLabel}
+                    onChange={e => setNewCatLabel(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && confirmarNovaCategoria()}
+                    style={{ background:"#0d1b2e", border:"1px solid #1e3a5f", borderRadius:10, color:"#f1f5f9", padding:"10px 12px", fontSize:13, flex:1, outline:"none", fontFamily:"inherit", boxSizing:"border-box" }}
+                  />
+                  <button onClick={confirmarNovaCategoria} style={{ padding:"10px 14px", borderRadius:10, border:"none", background:"#3b82f6", color:"#fff", cursor:"pointer", fontWeight:700, fontSize:13, flexShrink:0 }}>✓</button>
+                  <button onClick={() => { setAddingCat(false); setNewCatEmoji(""); setNewCatLabel(""); }} style={{ padding:"10px", borderRadius:10, border:"none", background:"#0d1b2e", color:"#475569", cursor:"pointer", fontSize:13 }}>✕</button>
+                </div>
+              )}
             </div>
 
             {/* Descrição */}
@@ -326,9 +367,11 @@
       );
     }
 
-    function TelaHome({ mesSel, setMesSel, resAnual, resMes, setModal, setEditItem }) {
+    function TelaHome({ mesSel, setMesSel, resAnual, resMes, setModal, setEditItem, categoriasCustom }) {
       const termometro = getStatus(resMes.performance);
       const hoje = new Date().getDate();
+      const todasCategorias = [...CATEGORIAS, ...categoriasCustom];
+      const getEmoji = (id) => todasCategorias.find(c => c.id === id)?.emoji || "📌";
       return (
         <div style={{ flex:1, overflowY:"auto", paddingBottom:90 }}>
           {/* Hero */}
@@ -418,7 +461,7 @@
                     }}>
                       <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                         <div style={{ width:32, height:32, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", background: item.tipo==="entrada" ? "#16a34a22" : "#dc262622", fontSize:16 }}>
-                          {getCatEmoji(item.categoria)}
+                          {getEmoji(item.categoria)}
                         </div>
                         <div>
                           <div style={{ fontSize:13, fontWeight:600, color:"#e2e8f0" }}>{item.descricao || "(sem descrição)"}</div>
@@ -514,11 +557,12 @@
       const anoAtual = new Date().getFullYear();
       const mesAtual = new Date().getMonth();
 
-      const [lancamentos, setLancamentos] = useState([]);
-      const [mesSel, setMesSel]           = useState(mesAtual);
-      const [tab, setTab]                 = useState("home");
-      const [modal, setModal]             = useState(null);
-      const [editItem, setEditItem]       = useState(null);
+      const [lancamentos, setLancamentos]         = useState([]);
+      const [mesSel, setMesSel]                   = useState(mesAtual);
+      const [tab, setTab]                         = useState("home");
+      const [modal, setModal]                     = useState(null);
+      const [editItem, setEditItem]               = useState(null);
+      const [categoriasCustom, setCategoriasCustom] = useState([]);
 
       const confirmarLancamento = (dados) => {
         setLancamentos(prev => [...prev, { id: Date.now(), excecoes: {}, ...dados }]);
@@ -641,7 +685,7 @@
           {/* Conteúdo */}
           <div style={{ flex:1, overflowY:"auto", display:"flex", flexDirection:"column" }}>
             <div style={{ maxWidth:600, width:"100%", margin:"0 auto", flex:1, display:"flex", flexDirection:"column" }}>
-              {tab === "home" && <TelaHome mesSel={mesSel} setMesSel={setMesSel} resAnual={resAnual} resMes={resMes} setModal={setModal} setEditItem={setEditItem} />}
+              {tab === "home" && <TelaHome mesSel={mesSel} setMesSel={setMesSel} resAnual={resAnual} resMes={resMes} setModal={setModal} setEditItem={setEditItem} categoriasCustom={categoriasCustom} />}
               {tab === "anual" && <TelaAnual resAnual={resAnual} setMesSel={setMesSel} setTab={setTab} />}
             </div>
           </div>
@@ -679,6 +723,8 @@
               info={modal}
               lancamentoEdit={null}
               mesSel={mesSel}
+              categoriasCustom={categoriasCustom}
+              onAddCategoria={(c) => setCategoriasCustom(prev => [...prev, c])}
               onConfirm={confirmarLancamento}
               onEdit={editarLancamento}
               onDelete={deletarLancamento}
@@ -690,6 +736,8 @@
               info={{ mes: mesSel, dia: lancOriginal.diaPrimeiro }}
               lancamentoEdit={lancEditFull}
               mesSel={mesSel}
+              categoriasCustom={categoriasCustom}
+              onAddCategoria={(c) => setCategoriasCustom(prev => [...prev, c])}
               onConfirm={confirmarLancamento}
               onEdit={editarLancamento}
               onDelete={deletarLancamento}
